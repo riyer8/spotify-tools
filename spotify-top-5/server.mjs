@@ -46,7 +46,8 @@ app.get('/', (req, res) => {
           color: #1db954;
         }
 
-        input[type="text"] {
+        input[type="text"],
+        input[type="number"] {
           width: 100%;
           padding: 0.75rem;
           border-radius: 0.5rem;
@@ -76,6 +77,7 @@ app.get('/', (req, res) => {
         <h1>Create Your Spotify Playlist</h1>
         <form action="/login" method="GET">
           <input type="text" name="name" placeholder="Enter playlist name" required />
+          <input type="number" name="limit" min="1" max="50" placeholder="Number of top tracks (1-50)" required />
           <button type="submit">Create Playlist</button>
         </form>
       </div>
@@ -86,23 +88,35 @@ app.get('/', (req, res) => {
 
 
 app.get('/login', (req, res) => {
-  const playlistName = req.query.name || 'My Top Tracks Playlist';
-  const state = encodeURIComponent(playlistName); // pass name as "state" param
+  const playlistName = (req.query.name || 'My Top Tracks Playlist').trim();
+  const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 5, 50));
+  const state = encodeURIComponent(JSON.stringify({ playlistName, limit }));
 
   const authUrl = `https://accounts.spotify.com/authorize` +
     `?response_type=code` +
     `&client_id=${process.env.CLIENT_ID}` +
     `&scope=${encodeURIComponent(scopes)}` +
     `&redirect_uri=${encodeURIComponent(process.env.REDIRECT_URI)}` +
-    `&state=${state}` +  // use state to pass playlist name
+    `&state=${state}` +
     `&show_dialog=true`;
 
   res.redirect(authUrl);
 });
 
+
 app.get('/callback', async (req, res) => {
   const code = req.query.code;
-  const playlistName = decodeURIComponent(req.query.state || 'My Top Tracks Playlist');
+  let playlistName = 'My Top Tracks Playlist';
+  let limit = 5;
+
+  try {
+    const parsedState = JSON.parse(decodeURIComponent(req.query.state || '{}'));
+    playlistName = parsedState.playlistName || playlistName;
+    limit = parsedState.limit || limit;
+    limit = Math.max(1, Math.min(limit, 50));
+  } catch (e) {
+    console.warn('Invalid state received, using default values.');
+  }
 
   try {
     const tokenResponse = await axios.post(
@@ -129,7 +143,7 @@ app.get('/callback', async (req, res) => {
     const user_id = userProfileResponse.data.id;
 
     const topTracksResponse = await axios.get(
-      'https://api.spotify.com/v1/me/top/tracks?time_range=long_term&limit=5',
+      `https://api.spotify.com/v1/me/top/tracks?time_range=long_term&limit=${limit}`,
       {
         headers: { Authorization: `Bearer ${access_token}` },
       }
@@ -142,7 +156,7 @@ app.get('/callback', async (req, res) => {
       `https://api.spotify.com/v1/users/${user_id}/playlists`,
       {
         name: playlistName,
-        description: 'Playlist with your top 5 tracks',
+        description: `Playlist with your top ${limit} tracks`,
         public: false,
       },
       {
@@ -153,10 +167,8 @@ app.get('/callback', async (req, res) => {
       }
     );
 
-    const playlist_id = playlistResponse.data.id;
-
     await axios.post(
-      `https://api.spotify.com/v1/playlists/${playlist_id}/tracks`,
+      `https://api.spotify.com/v1/playlists/${playlistResponse.data.id}/tracks`,
       { uris: trackUris },
       {
         headers: {
@@ -165,12 +177,6 @@ app.get('/callback', async (req, res) => {
         },
       }
     );
-
-    // Build the styled HTML response
-    const trackList = topTracks.map(
-      ({ name, artists }) =>
-        `<li>${name} <span>by</span> ${artists.map(a => a.name).join(', ')}</li>`
-    ).join('');
 
     res.send(`
       <!DOCTYPE html>
@@ -193,28 +199,16 @@ app.get('/callback', async (req, res) => {
           }
           .container {
             background-color: #121212;
-            padding: 2rem 3rem;
+            padding: 2rem;
             border-radius: 1rem;
             box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
             text-align: center;
-            max-width: 500px;
           }
           h2 {
             color: #1db954;
             margin-bottom: 1rem;
-          }
-          ul {
-            list-style: none;
-            padding: 0;
-            margin: 1rem 0;
-            text-align: left;
-          }
-          li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #333;
-          }
-          li span {
-            color: #999;
           }
           a.button {
             display: inline-block;
@@ -229,14 +223,24 @@ app.get('/callback', async (req, res) => {
           a.button:hover {
             background-color: #17a64a;
           }
+          iframe {
+            width: 100%;
+            height: 360px;
+            margin-top: 2rem;
+            border: none;
+            border-radius: 12px;
+          }
         </style>
       </head>
       <body>
         <div class="container">
           <h2>🎉 Playlist "<em>${playlistName}</em>" Created!</h2>
           <a class="button" href="${playlistResponse.data.external_urls.spotify}" target="_blank">Open in Spotify</a>
-          <h3 style="margin-top: 2rem;">Your Top 20 Tracks</h3>
-          <ul>${trackList}</ul>
+          <iframe
+            src="https://open.spotify.com/embed/playlist/${playlistResponse.data.id}?utm_source=generator&theme=0"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+          ></iframe>
         </div>
       </body>
       </html>
