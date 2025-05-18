@@ -8,15 +8,16 @@ dotenv.config();
 const app = express();
 const port = 8888;
 
-const scopes = 'user-top-read';
+const scopes = 'user-top-read playlist-modify-private';
 
 app.get('/login', (req, res) => {
   const authUrl = `https://accounts.spotify.com/authorize` +
     `?response_type=code` +
     `&client_id=${process.env.CLIENT_ID}` +
     `&scope=${encodeURIComponent(scopes)}` +
-    `&redirect_uri=${encodeURIComponent(process.env.REDIRECT_URI)}`;
-    
+    `&redirect_uri=${encodeURIComponent(process.env.REDIRECT_URI)}` +
+    `&show_dialog=true`;
+
   res.redirect(authUrl);
 });
 
@@ -42,9 +43,17 @@ app.get('/callback', async (req, res) => {
 
     const access_token = tokenResponse.data.access_token;
 
-    // Fetch Top Tracks
+    // Fetch user's profile to get user ID
+    const userProfileResponse = await axios.get('https://api.spotify.com/v1/me', {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+    const user_id = userProfileResponse.data.id;
+
+    // Fetch top 5 tracks
     const topTracksResponse = await axios.get(
-      'https://api.spotify.com/v1/me/top/tracks?time_range=long_term&limit=5',
+      'https://api.spotify.com/v1/me/top/tracks?time_range=long_term&limit=20',
       {
         headers: {
           Authorization: `Bearer ${access_token}`,
@@ -52,15 +61,56 @@ app.get('/callback', async (req, res) => {
       }
     );
 
-    const formatted = topTracksResponse.data.items.map(
-      ({ name, artists }) =>
-        `${name} by ${artists.map(artist => artist.name).join(', ')}`
-    ).join('<br>');
+    const topTracks = topTracksResponse.data.items;
+    const trackUris = topTracks.map(track => track.uri);
 
-    res.send(`<h2>Your Top 5 Tracks</h2><p>${formatted}</p>`);
+    // Create playlist
+    const playlistResponse = await axios.post(
+      `https://api.spotify.com/v1/users/${user_id}/playlists`,
+      {
+        name: 'My Top Tracks Playlist',
+        description: 'Playlist created with my top 20 tracks',
+        public: false,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const playlist_id = playlistResponse.data.id;
+
+    // Add top 20 tracks to the playlist
+    await axios.post(
+      `https://api.spotify.com/v1/playlists/${playlist_id}/tracks`,
+      {
+        uris: trackUris,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    // Send confirmation to user
+    const trackListHTML = topTracks.map(
+      ({ name, artists }) => `<li>${name} by ${artists.map(a => a.name).join(', ')}</li>`
+    ).join('');
+
+    res.send(`
+      <h2>Your Top 20 Playlist Was Created!</h2>
+      <p><a href="${playlistResponse.data.external_urls.spotify}" target="_blank">Open Playlist on Spotify</a></p>
+      <h3>Top 20 Tracks:</h3>
+      <ul>${trackListHTML}</ul>
+    `);
+
   } catch (err) {
     console.error(err.response?.data || err.message);
-    res.send('Something went wrong during authentication or fetching data.');
+    res.send('Something went wrong during authentication or playlist creation.');
   }
 });
 
