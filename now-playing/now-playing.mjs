@@ -8,7 +8,6 @@ dotenv.config();
 const app = express();
 const port = 8889;
 
-// Add user-read-playback-state scope for now playing
 const scopes = 'user-read-playback-state';
 
 app.get('/', (req, res) => {
