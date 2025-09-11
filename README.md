@@ -11,7 +11,6 @@ This is a minimal project exploring Spotify graphs with your public playlists. I
 
 #### Features To Add:
 
-- Fix node and text rendering
 - Statistics on user's public playlists
 - More control over graph display
 
@@ -40,4 +39,4 @@ While the backend is running, in a new terminal at the root directory, use the f
 npm run dev
 ```
 
-![Demo](src/assets/quick_video.gif)
+![Demo](src/assets/v2.gif)
