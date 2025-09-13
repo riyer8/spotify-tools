@@ -54,7 +54,7 @@ export default function Graph({ token }) {
   }
 
   async function fetchAlbums(artist) {
-    const albumsRes = await fetch(`https://api.spotify.com/v1/artists/${artist.id}/albums?include_groups=album,single&limit=50`, { headers: { Authorization: `Bearer ${token}` } });
+    const albumsRes = await fetch(`https://api.spotify.com/v1/artists/${artist.id}/albums?include_groups=album,single`, { headers: { Authorization: `Bearer ${token}` } });
     const albumsData = await albumsRes.json();
     const albums = albumsData.items || [];
 
@@ -71,7 +71,7 @@ export default function Graph({ token }) {
   }
 
   async function fetchTracks(album) {
-    const tracksRes = await fetch(`https://api.spotify.com/v1/albums/${album.id}/tracks?limit=50`, { headers: { Authorization: `Bearer ${token}` } });
+    const tracksRes = await fetch(`https://api.spotify.com/v1/albums/${album.id}/tracks`, { headers: { Authorization: `Bearer ${token}` } });
     const tracksData = await tracksRes.json();
     const tracks = tracksData.items || [];
 
