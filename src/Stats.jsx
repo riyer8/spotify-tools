@@ -1,561 +1,159 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
+import { computeStats } from './computeStats';
+import { getFilterLabel } from './playlistFilters';
 
-export default function Stats({ token }) {
-  const [playlists, setPlaylists] = useState([]);
-  const [songs, setSongs] = useState([]);
-  const [artistCounts, setArtistCounts] = useState({});
-  const [playlistCounts, setPlaylistCounts] = useState({});
-  const [albumCounts, setAlbumCounts] = useState({});
-  const [songPlaylistMap, setSongPlaylistMap] = useState({});
-  const [playlistArtistMap, setPlaylistArtistMap] = useState({});
-  const [playlistOverlap, setPlaylistOverlap] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+function StatPanel({ title, rows, accent }) {
+  return (
+    <div className="stats-panel">
+      <h3>{title}</h3>
+      {rows.length === 0 ? (
+        <p className="panel-empty">No data</p>
+      ) : (
+        rows.map(([name, count], idx) => (
+          <div key={name} className={`stat-row ${idx < 3 ? 'top-3' : ''}`}>
+            <span className="name" title={name}>{name}</span>
+            <span className="count" style={accent ? { color: accent } : undefined}>{count}</span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
 
-  useEffect(() => {
-    if (!token) return;
-    setLoading(true);
-    setError('');
-    fetchAllData().catch(e => setError(e.message));
-  }, [token]);
+function InsightCard({ label, value, detail }) {
+  return (
+    <div className="insight-card">
+      <div className="insight-label">{label}</div>
+      <div className="insight-value">{value}</div>
+      {detail && <div className="insight-detail">{detail}</div>}
+    </div>
+  );
+}
 
-  async function fetchAllData() {
-    let allPlaylists = [];
-    let url = 'https://api.spotify.com/v1/me/playlists?limit=50';
-    while (url) {
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to fetch playlists');
-      const data = await res.json();
-      allPlaylists = allPlaylists.concat(data.items);
-      url = data.next;
-    }
-    setPlaylists(allPlaylists);
+export default function Stats({
+  library,
+  filteredPlaylists,
+  filter,
+  loading,
+  error,
+}) {
+  const filterLabel = getFilterLabel(filter);
 
-    const songList = [];
-    const artistMap = {};
-    const playlistMap = {};
-    const albumMap = {};
-    const songToPlaylists = {};
-    const playlistToArtists = {};
-    const playlistToSongs = {};
+  const stats = useMemo(() => {
+    if (!library || !filteredPlaylists.length) return null;
+    return computeStats(filteredPlaylists, library.tracksByPlaylistId);
+  }, [library, filteredPlaylists]);
 
-    for (const pl of allPlaylists) {
-      let tracks = [];
-      let trackUrl = `https://api.spotify.com/v1/playlists/${pl.id}/tracks?limit=100`;
-      while (trackUrl) {
-        const res = await fetch(trackUrl, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error('Failed to fetch tracks');
-        const data = await res.json();
-        tracks = tracks.concat(data.items || []);
-        trackUrl = data.next;
-      }
-
-      playlistMap[pl.name] = tracks.length;
-      playlistToArtists[pl.name] = new Set();
-      playlistToSongs[pl.name] = new Set();
-
-      tracks.forEach(item => {
-        if (!item.track || !item.track.name) return;
-        songList.push(item.track);
-
-        const songKey =
-          item.track.name +
-          ' - ' +
-          (item.track.artists?.map(a => a.name).join(', ') || '');
-        songToPlaylists[songKey] = songToPlaylists[songKey] || new Set();
-        songToPlaylists[songKey].add(pl.name);
-
-        if (item.track.album && item.track.album.name) {
-          albumMap[item.track.album.name] =
-            (albumMap[item.track.album.name] || 0) + 1;
-        }
-
-        item.track.artists.forEach(artist => {
-          artistMap[artist.name] = (artistMap[artist.name] || 0) + 1;
-          playlistToArtists[pl.name].add(artist.name);
-        });
-
-        playlistToSongs[pl.name].add(songKey);
-      });
-    }
-
-    setSongs(songList);
-    setArtistCounts(artistMap);
-    setPlaylistCounts(playlistMap);
-    setAlbumCounts(albumMap);
-    setSongPlaylistMap(songToPlaylists);
-    setPlaylistArtistMap(playlistToArtists);
-
-    // Calculate playlist overlap
-    const overlapArr = [];
-    const playlistNames = Object.keys(playlistToSongs);
-    for (let i = 0; i < playlistNames.length; i++) {
-      for (let j = i + 1; j < playlistNames.length; j++) {
-        const a = playlistNames[i];
-        const b = playlistNames[j];
-        const setA = playlistToSongs[a];
-        const setB = playlistToSongs[b];
-        const intersection = new Set([...setA].filter(x => setB.has(x)));
-        if (intersection.size > 0) {
-          overlapArr.push({
-            pair: [a, b],
-            count: intersection.size,
-            songs: Array.from(intersection),
-          });
-        }
-      }
-    }
-    overlapArr.sort((a, b) => b.count - a.count);
-    setPlaylistOverlap(overlapArr.slice(0, 5));
-    setLoading(false);
+  if (loading && !library) {
+    return null;
   }
 
-  // Top artists
-  const sortedArtists = Object.entries(artistCounts).sort(
-    (a, b) => b[1] - a[1]
-  );
-  // Top playlists
-  const sortedPlaylists = Object.entries(playlistCounts).sort(
-    (a, b) => b[1] - a[1]
-  );
-  // Top albums
-  const sortedAlbums = Object.entries(albumCounts).sort(
-    (a, b) => b[1] - a[1]
-  );
-  // Top songs overall
-  const songCounts = {};
-  songs.forEach(song => {
-    if (!song.name) return;
-    const songKey =
-      song.name +
-      ' - ' +
-      (song.artists?.map(a => a.name).join(', ') || '');
-    songCounts[songKey] = (songCounts[songKey] || 0) + 1;
-  });
-  const sortedSongs = Object.entries(songCounts).sort(
-    (a, b) => b[1] - a[1]
-  );
-  // Top songs in multiple playlists
-  const topMultiPlaylistSongs = Object.entries(songPlaylistMap)
-    .map(([name, set]) => [name, set.size])
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
+  if (error && !library) {
+    return (
+      <div className="stats-page">
+        <div className="stats-error">
+          <p><strong>Something went wrong</strong></p>
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
 
-  // Most playlist-heavy artists
-  const artistPlaylistCounts = {};
-  Object.entries(playlistArtistMap).forEach(([pl, artistSet]) => {
-    artistSet.forEach(artist => {
-      artistPlaylistCounts[artist] =
-        (artistPlaylistCounts[artist] || 0) + 1;
-    });
-  });
-  const sortedArtistPlaylistCounts = Object.entries(
-    artistPlaylistCounts
-  )
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
+  if (!filteredPlaylists.length) {
+    return (
+      <div className="stats-page">
+        <div className="empty-state">
+          <p><strong>No playlists match this filter</strong></p>
+          <p>Try a different selection — currently showing: {filterLabel}</p>
+        </div>
+      </div>
+    );
+  }
 
-  // Playlist diversity (unique artists per playlist)
-  const playlistDiversity = Object.entries(playlistArtistMap)
-    .map(([pl, artistSet]) => [pl, artistSet.size])
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  if (!stats) return null;
 
   return (
-    <div
-      style={{
-        padding: '20px',
-        fontFamily: 'Arial, sans-serif',
-        maxWidth: '1200px',
-        margin: '0 auto',
-      }}
-    >
-      <h1 style={{ textAlign: 'center', marginBottom: '30px' }}>
-        Spotify Stats
-      </h1>
-      {loading ? (
-        <div
-          style={{
-            textAlign: 'center',
-            fontSize: '1.2em',
-            color: '#888',
-            marginTop: '40px',
-          }}
-        >
-          Loading stats...
+    <div className="stats-page">
+      <div className="stats-header">
+        <h1>Your Stats</h1>
+        <p>{filterLabel} · {filteredPlaylists.length} playlists{loading ? ' · refreshing…' : ''}</p>
+      </div>
+
+      <div className="stats-summary">
+        <div className="stat-card">
+          <div className="label">Playlists</div>
+          <div className="value">{filteredPlaylists.length}</div>
         </div>
-      ) : error ? (
-        <div
-          style={{
-            textAlign: 'center',
-            color: 'red',
-            marginTop: '40px',
-          }}
-        >
-          Error: {error}
+        <div className="stat-card">
+          <div className="label">Unique Songs</div>
+          <div className="value">{stats.uniqueSongs}</div>
         </div>
-      ) : (
-        <>
-          <div
-            style={{
-              display: 'flex',
-              gap: '40px',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              marginBottom: '30px',
-            }}
-          >
-            <div
-              style={{
-                background: '#6baed6',
-                padding: '20px',
-                borderRadius: '12px',
-                color: '#fff',
-                minWidth: '150px',
-                textAlign: 'center',
-              }}
-            >
-              <h2>Total Songs</h2>
-              <p style={{ fontSize: '28px', fontWeight: 'bold' }}>
-                {songs.length}
-              </p>
-            </div>
-            <div
-              style={{
-                background: '#fd8d3c',
-                padding: '20px',
-                borderRadius: '12px',
-                color: '#fff',
-                minWidth: '150px',
-                textAlign: 'center',
-              }}
-            >
-              <h2>Total Playlists</h2>
-              <p style={{ fontSize: '28px', fontWeight: 'bold' }}>
-                {playlists.length}
-              </p>
-            </div>
-          </div>
+        <div className="stat-card">
+          <div className="label">Unique Artists</div>
+          <div className="value">{stats.uniqueArtists}</div>
+        </div>
+        <div className="stat-card">
+          <div className="label">Avg Tracks / Playlist</div>
+          <div className="value">{stats.avgTracksPerPlaylist}</div>
+        </div>
+      </div>
 
-          <div
-            style={{
-              display: 'flex',
-              gap: '40px',
-              flexWrap: 'wrap',
-              marginBottom: '40px',
-            }}
-          >
-            {/* Top Artists */}
-            <div style={{ flex: 1, minWidth: '300px' }}>
-              <h3>Top Artists</h3>
-              <div
-                style={{
-                  maxHeight: '220px',
-                  overflowY: 'auto',
-                  background: '#fff',
-                  borderRadius: '12px',
-                  padding: '10px',
-                }}
-              >
-                {sortedArtists.slice(0, 10).map(([name, count], idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '6px 0',
-                      borderBottom: '1px solid #eee',
-                      background:
-                        idx < 3 ? '#e0f3ff' : 'transparent',
-                    }}
-                  >
-                    <span>{name}</span>
-                    <span
-                      style={{
-                        fontWeight: 'bold',
-                        color: '#3182bd',
-                      }}
-                    >
-                      {count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+      <div className="insights-grid">
+        {stats.loyalArtist && (
+          <InsightCard
+            label="Most loyal artist"
+            value={stats.loyalArtist.name}
+            detail={`Appears in ${stats.loyalArtist.playlistCount} playlists`}
+          />
+        )}
+        {stats.biggestPlaylist && (
+          <InsightCard
+            label="Biggest playlist"
+            value={stats.biggestPlaylist.name}
+            detail={`${stats.biggestPlaylist.count} tracks`}
+          />
+        )}
+        <InsightCard
+          label="Cross-playlist duplicates"
+          value={`${stats.duplicateRate}%`}
+          detail={`${stats.duplicateSongCount} songs appear in 2+ playlists`}
+        />
+        <InsightCard
+          label="Redundancy ratio"
+          value={`${stats.redundancyRatio}x`}
+          detail={`${stats.songs.length} total slots · ${stats.uniqueSongs} unique songs`}
+        />
+      </div>
 
-            {/* Top Songs */}
-            <div style={{ flex: 1, minWidth: '300px' }}>
-              <h3>Top Songs</h3>
-              <div
-                style={{
-                  maxHeight: '220px',
-                  overflowY: 'auto',
-                  background: '#fff',
-                  borderRadius: '12px',
-                  padding: '10px',
-                }}
-              >
-                {sortedSongs.slice(0, 10).map(([name, count], idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '6px 0',
-                      borderBottom: '1px solid #eee',
-                      background:
-                        idx < 3 ? '#e0ffe0' : 'transparent',
-                    }}
-                  >
-                    <span>{name}</span>
-                    <span
-                      style={{
-                        fontWeight: 'bold',
-                        color: '#74c476',
-                      }}
-                    >
-                      {count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+      <div className="stats-grid">
+        <StatPanel title="Top Artists" rows={stats.sortedArtists.slice(0, 10)} accent="var(--artist)" />
+        <StatPanel title="Songs in Most Playlists" rows={stats.topMultiPlaylistSongs} />
+        <StatPanel title="Most Diverse Playlists" rows={stats.playlistDiversity} accent="var(--album)" />
+      </div>
 
-            {/* Top Albums */}
-            <div style={{ flex: 1, minWidth: '300px' }}>
-              <h3>Most Common Albums</h3>
-              <div
-                style={{
-                  maxHeight: '220px',
-                  overflowY: 'auto',
-                  background: '#fff',
-                  borderRadius: '12px',
-                  padding: '10px',
-                }}
-              >
-                {sortedAlbums.slice(0, 10).map(([name, count], idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '6px 0',
-                      borderBottom: '1px solid #eee',
-                      background:
-                        idx < 3 ? '#fff4e0' : 'transparent',
-                    }}
-                  >
-                    <span>{name}</span>
-                    <span
-                      style={{
-                        fontWeight: 'bold',
-                        color: '#fd8d3c',
-                      }}
-                    >
-                      {count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+      <div className="stats-grid">
+        <StatPanel title="Top Songs (by appearances)" rows={stats.sortedSongs.slice(0, 10)} />
+        <StatPanel title="Artists in Most Playlists" rows={stats.sortedArtistPlaylistCounts} accent="var(--artist)" />
+        <StatPanel title="Most Common Albums" rows={stats.sortedAlbums.slice(0, 10)} accent="var(--album)" />
+      </div>
 
-          <div
-            style={{
-              display: 'flex',
-              gap: '40px',
-              flexWrap: 'wrap',
-              marginBottom: '40px',
-            }}
-          >
-            {/* Top Songs in Multiple Playlists */}
-            <div style={{ flex: 1, minWidth: '300px' }}>
-              <h3>Songs in Most Playlists</h3>
-              <div
-                style={{
-                  maxHeight: '220px',
-                  overflowY: 'auto',
-                  background: '#fff',
-                  borderRadius: '12px',
-                  padding: '10px',
-                }}
-              >
-                {topMultiPlaylistSongs.map(([name, count], idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '6px 0',
-                      borderBottom: '1px solid #eee',
-                      background:
-                        idx < 3 ? '#eaffea' : 'transparent',
-                    }}
-                  >
-                    <span>{name}</span>
-                    <span
-                      style={{
-                        fontWeight: 'bold',
-                        color: '#228B22',
-                      }}
-                    >
-                      {count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Most Playlist-Heavy Artists */}
-            <div style={{ flex: 1, minWidth: '300px' }}>
-              <h3>Artists in Most Playlists</h3>
-              <div
-                style={{
-                  maxHeight: '220px',
-                  overflowY: 'auto',
-                  background: '#fff',
-                  borderRadius: '12px',
-                  padding: '10px',
-                }}
-              >
-                {sortedArtistPlaylistCounts.map(
-                  ([name, count], idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '6px 0',
-                        borderBottom: '1px solid #eee',
-                        background:
-                          idx < 3 ? '#e0f3ff' : 'transparent',
-                      }}
-                    >
-                      <span>{name}</span>
-                      <span
-                        style={{
-                          fontWeight: 'bold',
-                          color: '#3182bd',
-                        }}
-                      >
-                        {count}
-                      </span>
-                    </div>
-                  )
+      {stats.playlistOverlap.length > 0 && (
+        <div className="stats-panel overlap-panel">
+          <h3>Most Overlapping Playlists</h3>
+          {stats.playlistOverlap.map((item, idx) => (
+            <div key={idx} className="overlap-item">
+              <div className="overlap-pair">{item.pair[0]} & {item.pair[1]}</div>
+              <div className="overlap-songs">
+                {item.count} shared songs ({item.pctA}% of {item.pair[0]}, {item.pctB}% of {item.pair[1]})
+                {item.songs.length > 0 && (
+                  <span className="overlap-examples">
+                    {' '}— e.g. {item.songs.slice(0, 2).join(', ')}{item.songs.length > 2 ? '…' : ''}
+                  </span>
                 )}
               </div>
             </div>
-
-            {/* Playlist Diversity */}
-            <div style={{ flex: 1, minWidth: '300px' }}>
-              <h3>Most Diverse Playlists (Unique Artists)</h3>
-              <div
-                style={{
-                  maxHeight: '220px',
-                  overflowY: 'auto',
-                  background: '#fff',
-                  borderRadius: '12px',
-                  padding: '10px',
-                }}
-              >
-                {playlistDiversity.map(([name, count], idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '6px 0',
-                      borderBottom: '1px solid #eee',
-                      background:
-                        idx < 3 ? '#fff4e0' : 'transparent',
-                    }}
-                  >
-                    <span>{name}</span>
-                    <span
-                      style={{
-                        fontWeight: 'bold',
-                        color: '#fd8d3c',
-                      }}
-                    >
-                      {count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Playlist Overlap */}
-          <div style={{ marginBottom: '40px' }}>
-            <h3>Most Overlapping Playlists (Shared Songs)</h3>
-            <div
-              style={{
-                maxHeight: '220px',
-                overflowY: 'auto',
-                background: '#fff',
-                borderRadius: '12px',
-                padding: '10px',
-              }}
-            >
-              {playlistOverlap.map((item, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    marginBottom: '12px',
-                    paddingBottom: '8px',
-                    borderBottom: '1px solid #eee',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: 'bold',
-                      color: '#6baed6',
-                    }}
-                  >
-                    {item.pair[0]} &amp; {item.pair[1]}
-                  </div>
-                  <div
-                    style={{
-                      color: '#3182bd',
-                      marginBottom: '4px',
-                    }}
-                  >
-                    Shared Songs:{' '}
-                    <span style={{ fontWeight: 'bold' }}>
-                      {item.count}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '0.95em',
-                      color: '#555',
-                    }}
-                  >
-                    {item.songs.slice(0, 3).map((song, i) => (
-                      <span key={i}>
-                        {song}
-                        {i < item.songs.slice(0, 3).length - 1
-                          ? ', '
-                          : ''}
-                      </span>
-                    ))}
-                    {item.songs.length > 3 ? '...' : ''}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
+          ))}
+        </div>
       )}
     </div>
   );

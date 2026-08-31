@@ -13,6 +13,14 @@ app.use(bodyParser.json());
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
+app.get('/', (_req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'Spotify Graph API — use the frontend at http://127.0.0.1:8888',
+    endpoints: ['POST /api/exchange_token'],
+  });
+});
+
 app.post('/api/exchange_token', async (req, res) => {
   const { code, redirect_uri } = req.body;
 
