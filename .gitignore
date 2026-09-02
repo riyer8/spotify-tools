@@ -34,6 +34,10 @@ dist-ssr
 
 # local Spotify library snapshot
 data/library.json
+data/library-graveyard.json
+
+# local idea dump
+docs/idea-dump.md
 
 # logs
 npm-debug.log*

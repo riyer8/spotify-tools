@@ -40,7 +40,10 @@
 }
 
 .nights-rail-head {
-  padding: 1.25rem 1.1rem 0.75rem;
+  padding: 1.1rem 1.1rem 0.85rem;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.35);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .nights-rail-head h2 {
@@ -54,6 +57,94 @@
   color: var(--text-muted);
   font-size: 0.78rem;
   margin-top: 0.25rem;
+}
+
+.nights-rail-search {
+  display: block;
+  margin-top: 0.75rem;
+}
+
+.nights-rail-search input {
+  width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8rem;
+}
+
+.nights-rail-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.nights-rail-search input:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
+.nights-year-actions {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 0.55rem;
+}
+
+.nights-year-actions button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.nights-year-actions button:hover {
+  color: var(--text);
+}
+
+.nights-rail-empty {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  padding: 0.75rem 0.6rem;
+}
+
+.nights-year-group {
+  margin-bottom: 0.15rem;
+}
+
+.nights-year-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 0.55rem 0.7rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin: 0.15rem 0 0.35rem;
+}
+
+.nights-year-toggle:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.nights-year-caret {
+  width: 0.9rem;
+  color: var(--text-muted);
+}
+
+.nights-year-name {
+  flex: 1;
+  text-align: left;
+}
+
+.nights-year-count {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .nights-rail-scroll {
@@ -241,6 +332,14 @@
   font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.night-clock-unique {
+  display: block;
+  margin-top: 0.15rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 0.72rem;
 }
 
 .night-legend {
@@ -523,6 +622,28 @@
     overflow-x: auto;
     overflow-y: hidden;
     padding: 0 0.75rem 0.75rem;
+  }
+
+  .nights-year-group {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    margin: 0;
+  }
+
+  .nights-year-toggle {
+    min-width: 4.75rem;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0.45rem 0.55rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  .nights-year-caret {
+    display: none;
   }
 
   .nights-rail-item {

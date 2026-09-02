@@ -5,6 +5,7 @@ import {
   buildNightsIndex,
   formatClock,
   formatDuration,
+  formatSaveCount,
   playlistColor,
   sessionPlaylists,
 } from './experiences/nights';
@@ -139,7 +140,10 @@ function ClockConstellation({ session, activeKey, onSelect }) {
 
       <div className="night-clock-center">
         <strong>{session.trackCount}</strong>
-        <span>songs</span>
+        <span>{session.trackCount === 1 ? 'save' : 'saves'}</span>
+        {session.uniqueTrackCount < session.trackCount && (
+          <span className="night-clock-unique">{session.uniqueTrackCount} songs</span>
+        )}
       </div>
     </div>
   );
@@ -167,7 +171,7 @@ function BeatCard({ label, event, onSelect, active }) {
   );
 }
 
-function NightRailItem({ session, selected, onSelect }) {
+function NightRailItem({ session, selected, onSelect, hideYear }) {
   return (
     <button
       type="button"
@@ -177,14 +181,59 @@ function NightRailItem({ session, selected, onSelect }) {
     >
       <span className="nights-rail-date">
         {session.isLateNight ? '☾ ' : ''}
-        {session.start.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+        {session.start.toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          ...(hideYear ? {} : { year: 'numeric' }),
+        })}
       </span>
       <span className="nights-rail-meta">
-        {session.trackCount} songs · {formatDuration(session.durationMs)}
+        {formatSaveCount(session)} · {formatDuration(session.durationMs)}
       </span>
       <span className="nights-rail-playlist">{session.primaryPlaylist.name}</span>
     </button>
   );
+}
+
+function groupByYear(sessions) {
+  const groups = [];
+  for (const session of sessions) {
+    const year = session.start.getFullYear();
+    const last = groups[groups.length - 1];
+    if (!last || last.year !== year) {
+      groups.push({ year, sessions: [session] });
+    } else {
+      last.sessions.push(session);
+    }
+  }
+  return groups;
+}
+
+function sessionMatchesQuery(session, query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+
+  const date = session.start.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const month = session.start.toLocaleDateString(undefined, { month: 'long' });
+  if (
+    date.toLowerCase().includes(q)
+    || month.toLowerCase().includes(q)
+    || String(session.start.getFullYear()) === q
+    || session.primaryPlaylist.name.toLowerCase().includes(q)
+    || session.weekday.toLowerCase().includes(q)
+  ) {
+    return true;
+  }
+
+  return session.events.some(event => (
+    event.playlistName.toLowerCase().includes(q)
+    || event.name.toLowerCase().includes(q)
+    || event.artistKey.toLowerCase().includes(q)
+  ));
 }
 
 export default function Nights({
@@ -197,6 +246,10 @@ export default function Nights({
   const filterLabel = getFilterLabel(filter);
   const [selectedId, setSelectedId] = useState(null);
   const [activeKey, setActiveKey] = useState(null);
+  const [query, setQuery] = useState('');
+  const [openYears, setOpenYears] = useState(new Set());
+  const [yearsInitialized, setYearsInitialized] = useState(false);
+  const [quieterOpen, setQuieterOpen] = useState(false);
 
   const events = useMemo(
     () => flattenLibraryEvents(filteredPlaylists, library?.tracksByPlaylistId),
@@ -204,6 +257,41 @@ export default function Nights({
   );
 
   const index = useMemo(() => buildNightsIndex(events), [events]);
+  const featuredMatches = useMemo(
+    () => index.featured.filter(session => sessionMatchesQuery(session, query)),
+    [index.featured, query]
+  );
+  const quieterMatches = useMemo(
+    () => index.quieter.filter(session => sessionMatchesQuery(session, query)),
+    [index.quieter, query]
+  );
+  const yearGroups = useMemo(() => groupByYear(featuredMatches), [featuredMatches]);
+
+  useEffect(() => {
+    setQuery('');
+    setYearsInitialized(false);
+    setQuieterOpen(false);
+  }, [filter, library?.userId]);
+
+  useEffect(() => {
+    if (yearsInitialized || !yearGroups.length) return;
+    setOpenYears(new Set([yearGroups[0].year]));
+    setYearsInitialized(true);
+  }, [yearGroups, yearsInitialized]);
+
+  useEffect(() => {
+    if (!query.trim()) return;
+    setOpenYears(new Set(yearGroups.map(group => group.year)));
+    if (quieterMatches.length) setQuieterOpen(true);
+  }, [query, yearGroups, quieterMatches.length]);
+
+  const visibleNights = useMemo(() => {
+    const fromYears = yearGroups.flatMap(group => (
+      openYears.has(group.year) ? group.sessions : []
+    ));
+    return quieterOpen ? [...fromYears, ...quieterMatches] : fromYears;
+  }, [yearGroups, openYears, quieterOpen, quieterMatches]);
+
   const nights = useMemo(
     () => [...index.featured, ...index.quieter],
     [index.featured, index.quieter]
@@ -221,6 +309,12 @@ export default function Nights({
   }, [nights, selected, selectedId]);
 
   useEffect(() => {
+    if (!query.trim() || !visibleNights.length) return;
+    if (selectedId && visibleNights.some(night => night.id === selectedId)) return;
+    setSelectedId(visibleNights[0].id);
+  }, [query, visibleNights, selectedId]);
+
+  useEffect(() => {
     setActiveKey(null);
   }, [selected?.id]);
 
@@ -229,17 +323,27 @@ export default function Nights({
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
       if (e.key !== 'j' && e.key !== 'k' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-      if (!nights.length || !selected) return;
+      if (!visibleNights.length || !selected) return;
       e.preventDefault();
-      const idx = nights.findIndex(night => night.id === selected.id);
+      const idx = visibleNights.findIndex(night => night.id === selected.id);
+      const from = idx === -1 ? 0 : idx;
       const next = (e.key === 'j' || e.key === 'ArrowDown')
-        ? nights[Math.min(nights.length - 1, idx + 1)]
-        : nights[Math.max(0, idx - 1)];
+        ? visibleNights[Math.min(visibleNights.length - 1, from + 1)]
+        : visibleNights[Math.max(0, from - 1)];
       if (next) setSelectedId(next.id);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [nights, selected]);
+  }, [visibleNights, selected]);
+
+  function toggleYear(year) {
+    setOpenYears((prev) => {
+      const next = new Set(prev);
+      if (next.has(year)) next.delete(year);
+      else next.add(year);
+      return next;
+    });
+  }
 
   function selectEvent(event) {
     setActiveKey(eventIdentity(event));
@@ -305,31 +409,75 @@ export default function Nights({
         <div className="nights-rail-head">
           <h2>Nights</h2>
           <p>
-            {index.featured.length} sittings · newest first
+            {featuredMatches.length} of {index.featured.length} sittings
             {index.quietPromoted ? ' · quieter library' : ''}
           </p>
+          <label className="nights-rail-search">
+            <span className="sr-only">Filter sittings</span>
+            <input
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Playlist, song, month…"
+            />
+          </label>
+          {yearGroups.length > 1 && (
+            <div className="nights-year-actions">
+              <button type="button" onClick={() => setOpenYears(new Set(yearGroups.map(group => group.year)))}>
+                Expand years
+              </button>
+              <button type="button" onClick={() => setOpenYears(new Set())}>
+                Collapse years
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="nights-rail-scroll">
-          {index.featured.map((session, idx) => {
-            const year = session.start.getFullYear();
-            const prevYear = idx > 0 ? index.featured[idx - 1].start.getFullYear() : null;
+          {yearGroups.length === 0 && (
+            <p className="nights-rail-empty">No sittings match that filter.</p>
+          )}
+
+          {yearGroups.map((group) => {
+            const open = openYears.has(group.year);
             return (
-              <div key={session.id}>
-                {year !== prevYear && <p className="nights-rail-label">{year}</p>}
-                <NightRailItem
-                  session={session}
-                  selected={session.id === selected.id}
-                  onSelect={setSelectedId}
-                />
+              <div key={group.year} className={`nights-year-group${open ? ' is-open' : ''}`}>
+                <button
+                  type="button"
+                  className="nights-year-toggle"
+                  onClick={() => toggleYear(group.year)}
+                  aria-expanded={open}
+                >
+                  <span className="nights-year-caret" aria-hidden="true">{open ? '▾' : '▸'}</span>
+                  <span className="nights-year-name">{group.year}</span>
+                  <span className="nights-year-count">{group.sessions.length}</span>
+                </button>
+                {open && group.sessions.map(session => (
+                  <NightRailItem
+                    key={session.id}
+                    session={session}
+                    selected={session.id === selected.id}
+                    onSelect={setSelectedId}
+                    hideYear
+                  />
+                ))}
               </div>
             );
           })}
 
-          {index.quieter.length > 0 && (
-            <>
-              <p className="nights-rail-label">Quieter sittings</p>
-              {index.quieter.map(session => (
+          {quieterMatches.length > 0 && (
+            <div className={`nights-year-group${quieterOpen ? ' is-open' : ''}`}>
+              <button
+                type="button"
+                className="nights-year-toggle"
+                onClick={() => setQuieterOpen(open => !open)}
+                aria-expanded={quieterOpen}
+              >
+                <span className="nights-year-caret" aria-hidden="true">{quieterOpen ? '▾' : '▸'}</span>
+                <span className="nights-year-name">Quieter</span>
+                <span className="nights-year-count">{quieterMatches.length}</span>
+              </button>
+              {quieterOpen && quieterMatches.map(session => (
                 <NightRailItem
                   key={session.id}
                   session={session}
@@ -337,7 +485,7 @@ export default function Nights({
                   onSelect={setSelectedId}
                 />
               ))}
-            </>
+            </div>
           )}
         </div>
         <p className="nights-rail-hint">j / k to move · {filterLabel}</p>
@@ -347,8 +495,12 @@ export default function Nights({
         <header className="night-hero">
           <p className="night-kicker">{story.kicker}</p>
           <h1 className="night-hero-date">{story.date}</h1>
-          <p className="night-hero-meta">{story.meta}</p>
-          <p className="night-hero-note">Times are when you saved a song to a playlist — not when you played it.</p>
+          <p className="night-hero-meta">
+            {formatClock(selected.start)} → {formatClock(selected.end)}
+            {' · '}{formatDuration(selected.durationMs)}
+            {' · '}{formatSaveCount(selected)}
+          </p>
+          <p className="night-hero-note">Each count is a save to a playlist — same song in two lists is two saves.</p>
         </header>
 
         <div className="night-stage-grid">
@@ -412,7 +564,7 @@ export default function Nights({
           </div>
         </div>
 
-        <ol className="night-meteor" aria-label="Every song added this sitting">
+        <ol className="night-meteor" aria-label="Every playlist save this sitting">
           {rows.map((row) => {
             if (row.type === 'gap') {
               return (

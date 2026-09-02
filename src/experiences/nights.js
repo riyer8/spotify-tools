@@ -31,6 +31,20 @@ export function formatDuration(ms) {
   return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
 }
 
+function plural(count, singular, pluralWord = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : pluralWord}`;
+}
+
+export function formatSaveCount(session) {
+  const saves = session.trackCount;
+  const songs = session.uniqueTrackCount;
+  const times = saves === 1 ? 'saved once' : `saved ${saves} times`;
+  if (songs && songs < saves) {
+    return `${times} · ${songs} songs`;
+  }
+  return times;
+}
+
 export function formatDisplayDate(date) {
   return date.toLocaleDateString(undefined, {
     month: 'long',
@@ -354,7 +368,7 @@ export function buildNightStory(session) {
   return {
     kicker: `${session.weekday} ${daypart(session)}`,
     date: formatDisplayDate(start),
-    meta: `${formatClock(start)} → ${formatClock(end)}  ·  ${formatDuration(session.durationMs)}  ·  ${session.trackCount} songs`,
+    meta: `${formatClock(start)} → ${formatClock(end)}  ·  ${formatDuration(session.durationMs)}  ·  ${formatSaveCount(session)}`,
     sentences,
   };
 }
