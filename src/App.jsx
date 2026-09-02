@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Explore from './Explore';
 import Stats from './Stats';
+import Nights from './Nights';
 import PlaylistControls from './PlaylistControls';
 import { redirectToSpotifyAuth } from './spotifyAuth';
 import { filterPlaylists, getDefaultFilter, saveFilter } from './playlistFilters';
-import { usePlaylistData } from './usePlaylistData';
+import { usePlaylistData, LOCAL_PREVIEW_TOKEN } from './usePlaylistData';
 import { clearCache } from './playlistCache';
 import PlaylistLoadScreen from './PlaylistLoadScreen';
 import spotifyLogo from './assets/spotify.png';
@@ -14,8 +15,18 @@ const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
 const BACKEND_URL = 'http://127.0.0.1:8887';
 
 export default function App() {
-  const [token, setToken] = useState(() => sessionStorage.getItem('spotify_token'));
-  const [page, setPage] = useState('explore');
+  const [token, setToken] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (import.meta.env.DEV && params.get('saved') === '1') {
+      sessionStorage.setItem('spotify_token', LOCAL_PREVIEW_TOKEN);
+      return LOCAL_PREVIEW_TOKEN;
+    }
+    return sessionStorage.getItem('spotify_token');
+  });
+  const [page, setPage] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('page') === 'nights' ? 'nights' : 'explore';
+  });
   const [authError, setAuthError] = useState('');
   const [filter, setFilter] = useState(getDefaultFilter);
 
@@ -77,6 +88,18 @@ export default function App() {
           <button className="btn-primary" onClick={() => redirectToSpotifyAuth(CLIENT_ID)}>
             Log in with Spotify
           </button>
+          {import.meta.env.DEV && (
+            <button
+              className="btn-ghost"
+              style={{ marginTop: '0.75rem', width: '100%' }}
+              onClick={() => {
+                sessionStorage.setItem('spotify_token', LOCAL_PREVIEW_TOKEN);
+                setToken(LOCAL_PREVIEW_TOKEN);
+              }}
+            >
+              Preview saved library
+            </button>
+          )}
         </div>
       </div>
     );
@@ -117,6 +140,12 @@ export default function App() {
           >
             Stats
           </button>
+          <button
+            className={`nav-tab ${page === 'nights' ? 'active' : ''}`}
+            onClick={() => setPage('nights')}
+          >
+            Nights
+          </button>
         </nav>
 
         <PlaylistControls
@@ -135,7 +164,9 @@ export default function App() {
       </header>
 
       <main className="app-main">
-        {page === 'explore' ? <Explore {...sharedProps} /> : <Stats {...sharedProps} />}
+        {page === 'explore' && <Explore {...sharedProps} />}
+        {page === 'stats' && <Stats {...sharedProps} />}
+        {page === 'nights' && <Nights {...sharedProps} />}
       </main>
     </div>
   );

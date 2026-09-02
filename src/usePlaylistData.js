@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchPlaylists, fetchPlaylistTracks, getTrackFromPlaylistItem } from './spotifyApi';
-import { loadBestCache, saveCache, saveFileCache } from './playlistCache';
+import { loadBestCache, loadFileCacheRaw, saveCache, saveFileCache } from './playlistCache';
 import { mapWithConcurrency } from './parallelFetch';
 
 const FETCH_CONCURRENCY = 6;
+export const LOCAL_PREVIEW_TOKEN = 'local-preview';
 
 function normalizeTrack(item) {
   const track = getTrackFromPlaylistItem(item);
@@ -173,6 +174,20 @@ export function usePlaylistData(token) {
     setLoading(true);
 
     try {
+      if (token === LOCAL_PREVIEW_TOKEN) {
+        const cached = await loadFileCacheRaw();
+        if (!cached) {
+          setError('No saved library on disk. Log in with Spotify first.');
+          setLoadPhase('idle');
+          return null;
+        }
+        setLibrary(cached);
+        setLoadPhase('done');
+        setLoadItems([]);
+        setFileSaved(true);
+        return cached;
+      }
+
       const profile = await fetchProfile(token);
       const userId = profile.id;
       const cached = await loadBestCache(userId);

@@ -48,19 +48,23 @@ export function loadCache(userId) {
   }
 }
 
-export async function loadFileCache(userId) {
+export async function loadFileCacheRaw() {
   try {
     const res = await fetch(`${BACKEND_URL}/api/library-cache`);
     if (!res.ok) return null;
 
     const data = await res.json();
-    if (data.userId !== userId) return null;
     if (!Array.isArray(data.playlists) || !data.tracksByPlaylistId) return null;
-
     return withCacheMeta(data, 'file');
   } catch {
     return null;
   }
+}
+
+export async function loadFileCache(userId) {
+  const data = await loadFileCacheRaw();
+  if (!data || data.userId !== userId) return null;
+  return data;
 }
 
 export async function loadBestCache(userId) {

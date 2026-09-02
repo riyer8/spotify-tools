@@ -1,0 +1,546 @@
+.nights-page {
+  height: calc(100vh - var(--header-h));
+  height: calc(100dvh - var(--header-h));
+  display: grid;
+  grid-template-columns: minmax(240px, 280px) 1fr;
+  background:
+    radial-gradient(1200px 600px at 70% 10%, rgba(180, 155, 200, 0.14), transparent 55%),
+    radial-gradient(900px 500px at 10% 90%, rgba(29, 185, 84, 0.08), transparent 50%),
+    #07070a;
+  color: var(--text);
+  overflow: hidden;
+}
+
+.nights-page-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nights-empty {
+  text-align: center;
+  max-width: 420px;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+.nights-empty strong {
+  display: block;
+  color: var(--text);
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.nights-rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.nights-rail-head {
+  padding: 1.25rem 1.1rem 0.75rem;
+}
+
+.nights-rail-head h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.nights-rail-head p,
+.nights-rail-hint {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  margin-top: 0.25rem;
+}
+
+.nights-rail-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.25rem 0.6rem 1rem;
+}
+
+.nights-rail-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 1rem 0.6rem 0.4rem;
+}
+
+.nights-rail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: var(--text);
+  padding: 0.7rem 0.75rem;
+  margin-bottom: 0.2rem;
+  border-left: 3px solid transparent;
+}
+
+.nights-rail-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.nights-rail-item.is-selected {
+  background: rgba(29, 185, 84, 0.1);
+  border-left-color: #1db954;
+}
+
+.nights-rail-date {
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.nights-rail-meta,
+.nights-rail-playlist {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.nights-rail-playlist {
+  color: #b49bc8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.nights-rail-hint {
+  padding: 0.65rem 1.1rem 1rem;
+  margin: 0;
+}
+
+.nights-stage {
+  position: relative;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 3rem;
+}
+
+.nights-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 0.6px, transparent 0.6px);
+  background-size: 3px 3px;
+}
+
+.night-hero,
+.night-stage-grid,
+.night-meteor {
+  position: relative;
+}
+
+.night-kicker {
+  color: #f59b23;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 0.45rem;
+}
+
+.night-hero-date {
+  font-size: clamp(2.2rem, 6vw, 4.4rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+  margin-bottom: 0.55rem;
+}
+
+.night-hero-note {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin-top: 0.55rem;
+  max-width: 36rem;
+}
+
+.night-stage-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 420px) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: center;
+  margin: 1.5rem 0 2rem;
+}
+
+.night-clock-wrap {
+  position: relative;
+  width: min(100%, 420px);
+  margin: 0 auto;
+}
+
+.night-clock {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.night-clock-hour {
+  fill: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.night-constellation-line {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: night-line-in 1.8s ease forwards;
+}
+
+.night-star {
+  opacity: 0;
+  cursor: pointer;
+  animation: night-star-in 0.4s ease forwards;
+}
+
+.night-star.is-active {
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.night-clock-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.night-clock-center strong {
+  display: block;
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.night-clock-center span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.night-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.9rem;
+  justify-content: center;
+  max-width: 420px;
+}
+
+.night-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.night-legend em {
+  font-style: normal;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.night-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.night-story {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  font-size: 1.08rem;
+  line-height: 1.55;
+  max-width: 40rem;
+}
+
+.night-beats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.4rem;
+}
+
+.night-beat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 0.35rem 0.35rem 0.75rem;
+  color: var(--text);
+  min-height: 100%;
+}
+
+.night-beat-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  width: 100%;
+  padding: 0.55rem 0.65rem 0.2rem;
+}
+
+.night-beat:hover,
+.night-beat.is-active {
+  border-color: #1db954;
+  transform: translateY(-2px);
+}
+
+.night-beat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #f59b23;
+  font-weight: 700;
+}
+
+.night-beat-time {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.night-beat-title {
+  font-weight: 800;
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+
+.night-beat-artist,
+.night-beat-playlist {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.night-beat-open {
+  margin: 0.15rem 0.65rem 0;
+  color: #1db954;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.night-cast {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 1.1rem;
+}
+
+.night-cast-chip {
+  background: rgba(80, 155, 245, 0.12);
+  border: 1px solid rgba(80, 155, 245, 0.28);
+  color: #cfe4ff;
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  font-size: 0.78rem;
+}
+
+.night-cast-chip em {
+  font-style: normal;
+  margin-left: 0.35rem;
+  color: #509bf5;
+  font-weight: 700;
+}
+
+.night-meteor {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0 0 1rem;
+  max-width: 920px;
+  position: relative;
+}
+
+.night-meteor::before {
+  content: '';
+  position: absolute;
+  left: 5.6rem;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(245, 155, 35, 0.45), transparent);
+}
+
+.night-meteor > li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.night-meteor-row {
+  display: grid;
+  grid-template-columns: 4.6rem 14px 1fr auto;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  padding: 0.45rem 0.4rem;
+  border-radius: 8px;
+}
+
+.night-meteor-row:hover,
+.night-meteor-row.is-active {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.night-meteor-time {
+  color: #f59b23;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.night-meteor-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px #07070a;
+  z-index: 1;
+}
+
+.night-meteor-title {
+  display: block;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.night-meteor-artist,
+.night-meteor-playlist {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.night-meteor-playlist {
+  color: #b49bc8;
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.night-meteor-open {
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 0.3rem 0.45rem;
+}
+
+.night-meteor-open:hover {
+  color: #1db954;
+}
+
+.night-meteor-gap {
+  font-size: 0.72rem;
+  color: rgba(245, 155, 35, 0.75);
+  padding: 0.2rem 0 0.2rem 6.4rem;
+  letter-spacing: 0.04em;
+}
+
+@keyframes night-star-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes night-line-in {
+  to { stroke-dashoffset: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .night-star,
+  .night-constellation-line,
+  .night-beat {
+    animation: none;
+    transform: none;
+  }
+
+  .night-star {
+    opacity: 1;
+  }
+
+  .night-constellation-line {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (max-width: 980px) {
+  .nights-page {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .nights-rail {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .nights-rail-scroll {
+    display: flex;
+    gap: 0.4rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 0.75rem 0.9rem;
+  }
+
+  .nights-rail-item {
+    min-width: 210px;
+    margin: 0;
+  }
+
+  .nights-rail-label {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    padding: 0.4rem 0;
+  }
+
+  .nights-rail-hint {
+    display: none;
+  }
+
+  .night-stage-grid,
+  .night-beats {
+    grid-template-columns: 1fr;
+  }
+
+  .night-meteor::before {
+    left: 4.7rem;
+  }
+
+  .night-meteor-playlist {
+    display: none;
+  }
+}
