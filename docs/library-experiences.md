@@ -548,12 +548,12 @@ Night must not pretend to be the other three. No half-built Migration UI behind 
 
 ## Night engineering checklist
 
-- [ ] `src/experiences/events.js` — `flattenLibraryEvents(playlists, tracksByPlaylistId)`
-- [ ] `src/experiences/nights.js` — cluster, score, beats, `buildNightStory(session)`
-- [ ] `src/Nights.jsx` — rail + stage
-- [ ] `src/Nights.css` — constellation, meteor, reduced-motion
-- [ ] `src/App.jsx` — `page === 'nights'` tab
-- [ ] Empty / no-dates / quiet-library states
-- [ ] Mobile: rail as horizontal scroller
-- [ ] Keyboard j/k
-- [ ] Browser verification
+- [x] `src/experiences/events.js` — `flattenLibraryEvents(playlists, tracksByPlaylistId)`
+- [x] `src/experiences/nights.js` — cluster, score, beats, `buildNightStory(session)`
+- [x] `src/Nights.jsx` — rail + stage
+- [x] `src/Nights.css` — constellation, meteor, reduced-motion
+- [x] `src/App.jsx` — `page === 'nights'` tab
+- [x] Empty / no-dates / quiet-library states
+- [x] Mobile: rail as horizontal scroller
+- [x] Keyboard j/k
+- [x] Browser verification
