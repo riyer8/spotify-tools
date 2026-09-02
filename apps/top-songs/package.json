@@ -1,8 +1,10 @@
 {
-  "name": "spotify-top-5",
+  "name": "top-songs",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
-  "main": "server.mjs",
+  "main": "top-songs.mjs",
+  "description": "Creates a playlist from your Spotify top tracks.",
   "scripts": {
     "start": "node top-songs.mjs"
   },

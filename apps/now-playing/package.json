@@ -1,14 +1,13 @@
 {
   "name": "now-playing",
   "version": "1.0.0",
-  "main": "index.js",
+  "private": true,
+  "type": "module",
+  "main": "now-playing.mjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node now-playing.mjs"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "description": "Live currently-playing page for Spotify.",
   "dependencies": {
     "axios": "^1.9.0",
     "dotenv": "^16.5.0",

@@ -31,10 +31,6 @@ export function formatDuration(ms) {
   return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
 }
 
-function plural(count, singular, pluralWord = `${singular}s`) {
-  return `${count} ${count === 1 ? singular : pluralWord}`;
-}
-
 export function formatSaveCount(session) {
   const saves = session.trackCount;
   const songs = session.uniqueTrackCount;

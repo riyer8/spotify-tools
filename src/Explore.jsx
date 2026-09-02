@@ -40,7 +40,7 @@ function BarChart({ items, onClick }) {
   );
 }
 
-function ArtistInsightList({ artists, totalTracks, onClick }) {
+function ArtistInsightList({ artists, onClick }) {
   if (!artists.length) {
     return <p className="panel-empty">Nothing here for this view yet.</p>;
   }
@@ -330,7 +330,6 @@ export default function Explore({
 
             <ArtistInsightList
               artists={activeArtists}
-              totalTracks={artistInsights.totalTracks}
               onClick={loadArtistAlbums}
             />
 

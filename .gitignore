@@ -1,5 +1,12 @@
-# Logs
-logs
+# dependencies
+node_modules/
+
+# build
+dist/
+dist-ssr/
+
+# logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,45 +14,27 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# environment
+.env
+.env.*
+!.env.example
 
-# Editor directories and files
+# local Spotify library snapshots — never commit personal data
+data/*
+!data/.gitkeep
+
+# local notes
+docs/idea-dump.md
+
+# editor / OS
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# dependencies
-/node_modules
-
-# environment files
-.env
-.env.local
-.env.development
-.env.production
-
-# local Spotify library snapshot
-data/library.json
-data/library-graveyard.json
-
-# local idea dump
-docs/idea-dump.md
-
-# logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# OS files
-.DS_Store
-Thumbs.db
-.DS_Store
-.DS_Store
+*.local
