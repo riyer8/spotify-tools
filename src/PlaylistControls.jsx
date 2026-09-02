@@ -1,6 +1,22 @@
 import { PLAYLIST_FILTERS } from './playlistFilters';
 import { formatCacheAge } from './playlistCache';
 
+function cacheLabel(library) {
+  if (library.fromCache) {
+    const source = library.cacheSource === 'file' ? 'Saved library' : 'Cached';
+    return `${source} · ${formatCacheAge(library.ageMs)}`;
+  }
+
+  const stats = library.refreshStats;
+  if (stats && stats.fetched === 0 && stats.reused > 0) {
+    return 'Already up to date';
+  }
+  if (stats && stats.reused > 0) {
+    return `Updated ${stats.fetched} playlist${stats.fetched === 1 ? '' : 's'}`;
+  }
+  return 'Just fetched';
+}
+
 export default function PlaylistControls({
   filter,
   onFilterChange,
@@ -8,6 +24,7 @@ export default function PlaylistControls({
   loading,
   onRefresh,
   cacheSaved,
+  fileSaved,
 }) {
   const activeFilter = PLAYLIST_FILTERS.find(f => f.id === filter);
 
@@ -29,9 +46,10 @@ export default function PlaylistControls({
 
       {library && (
         <span className="cache-badge" title={activeFilter?.description}>
-          {library.fromCache ? `Cached ${formatCacheAge(library.ageMs)}` : 'Just fetched'}
+          {cacheLabel(library)}
           {library.isStale && ' · stale'}
           {!cacheSaved && ' · cache full'}
+          {!fileSaved && ' · not saved to disk'}
         </span>
       )}
 
@@ -39,7 +57,7 @@ export default function PlaylistControls({
         className="btn-ghost btn-refresh"
         onClick={onRefresh}
         disabled={loading}
-        title="Fetch fresh data from Spotify"
+        title="Check Spotify for playlist changes. Unchanged playlists stay cached."
       >
         {loading ? 'Refreshing…' : '↻ Refresh'}
       </button>

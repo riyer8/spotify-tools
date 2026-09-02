@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import spotifyLogo from './assets/spotify.png';
 
-export default function PlaylistLoadScreen({ items, phase }) {
+export default function PlaylistLoadScreen({ items, phase, reusedCount = 0 }) {
   const listRef = useRef(null);
   const itemRefs = useRef({});
   const prevStatusRef = useRef({});
@@ -47,11 +47,18 @@ export default function PlaylistLoadScreen({ items, phase }) {
           <div className="load-pulse-ring">
             <img src={spotifyLogo} alt="" className="load-logo" />
           </div>
-          <h2>{phase === 'playlists' ? 'Finding your playlists…' : 'Loading your library'}</h2>
+          <h2>
+            {phase === 'playlists'
+              ? 'Finding your playlists…'
+              : reusedCount > 0
+                ? 'Updating changed playlists'
+                : 'Loading your library'}
+          </h2>
           <p className="load-subtitle">
             {phase === 'playlists'
               ? 'Connecting to Spotify'
               : `${doneCount + errorCount} of ${total || '…'} playlists`}
+            {reusedCount > 0 && phase === 'tracks' && ` · ${reusedCount} unchanged`}
             {loadingCount > 0 && phase === 'tracks' && ` · ${loadingCount} in flight`}
           </p>
           {total > 0 && (

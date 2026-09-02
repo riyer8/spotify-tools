@@ -19,7 +19,7 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [filter, setFilter] = useState(getDefaultFilter);
 
-  const { library, loading, error, refresh, cacheSaved, loadPhase, loadItems } = usePlaylistData(token);
+  const { library, loading, error, refresh, cacheSaved, fileSaved, loadPhase, loadItems, reusedCount } = usePlaylistData(token);
 
   const filteredPlaylists = useMemo(() => {
     if (!library) return [];
@@ -96,7 +96,7 @@ export default function App() {
   return (
     <div className="app-shell">
       {showLoadScreen && (
-        <PlaylistLoadScreen items={loadItems} phase={loadPhase} />
+        <PlaylistLoadScreen items={loadItems} phase={loadPhase} reusedCount={reusedCount} />
       )}
       <header className="app-header">
         <div className="header-brand">
@@ -126,6 +126,7 @@ export default function App() {
           loading={loading}
           onRefresh={refresh}
           cacheSaved={cacheSaved}
+          fileSaved={fileSaved}
         />
 
         <button className="btn-ghost" onClick={handleLogout}>

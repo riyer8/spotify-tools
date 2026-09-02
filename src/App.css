@@ -1141,6 +1141,11 @@
   color: var(--text-muted);
 }
 
+.load-item-cached {
+  opacity: 0.45;
+  color: var(--text-muted);
+}
+
 .load-item-error {
   opacity: 0.45;
   color: var(--orange);
