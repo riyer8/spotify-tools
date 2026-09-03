@@ -9,3 +9,4 @@ Each app has its own `package.json` and `.env`. They are not wired to the Graph 
 | [now-playing](now-playing) | Live "currently playing" page |
 | [top-songs](top-songs) | Builds a playlist from your top tracks |
 | [wrapped](wrapped) | Top artists and tracks (in progress) |
+| [dg-queue](dg-queue) | DJ mix map of claimed songs (frat/nostalgia + Death Grips spike), port 8890 |
