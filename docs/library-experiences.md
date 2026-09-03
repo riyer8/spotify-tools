@@ -2,7 +2,7 @@
 
 Four products built on playlist membership plus `addedAt` (the moment a song was claimed, not played). Wrapped already owns listening. These own **curation**.
 
-This document is the spec. Implementation order is 1 → 2 → 4 → 5. **Night is the only experience this goal ships.** Migration, Time capsule, and Graveyard are specified here so later work can proceed without re-deciding product, data, or visual language.
+This document is the spec for shared foundations, Night, Time capsule, and Graveyard. Implementation order is 1 → 2 → 4 → 5. **Night and Migration are shipped.** Migration’s full spec lives in [`song-migration.md`](song-migration.md).
 
 ---
 
@@ -58,10 +58,10 @@ Do not use playlist-specific row identity for Migration; a song living in two pl
 
 Keep the existing shell: sticky header, playlist filter, cache badge, refresh, log out.
 
-Add a third top-level tab beside Explore and Stats. For this goal the tab is **Nights**. Later tabs (or a single **Stories** menu) can host Migration, Capsule, Graveyard without redesigning the shell.
+Tabs live in the existing shell. Night shipped **Nights**. Migration ships **Migrations** beside it. Capsule and Graveyard can still join later without React Router.
 
 ```
-[ Spotify Graph ]   [ Explore | Stats | Nights ]   [ filter · cache · refresh ]   [ Log out ]
+[ Spotify Graph ]   [ Explore | Stats | Nights | Migrations ]   [ filter · cache · refresh ]   [ Log out ]
 ```
 
 Header is already crowded on small screens (filter wraps, cache badge hides). Nights must still work when the badge is hidden. The Nights page itself is full-bleed inside `app-main` (same as Explore/Stats).
@@ -106,12 +106,13 @@ src/experiences/
   events.js                          flatten + identity helpers
   nights.js                          sessions, scoring, narrative
   nights.test-fixtures.js            optional later
-  migration.js                       (later)
+  migrations.js                      song paths, kinds, room flows
   capsule.js                         (later)
   graveyard.js                       (later)
 src/Nights.jsx                       Night page
 src/Nights.css                       Night visuals
-src/Migration.jsx                    later
+src/Migrations.jsx                   Migration page
+src/Migrations.css                   Migration visuals
 src/Capsule.jsx                      later
 src/Graveyard.jsx                    later
 ```
@@ -363,61 +364,7 @@ Night is done when all of the following are true on the local site:
 
 ## 2. Song migration — “this song graduated”
 
-### Product (later)
-
-A song-first experience: tracks that were claimed in **more than one playlist at different times**. Each is a life moving through rooms.
-
-Primary feeling: recognition. “Oh — that song left the gym.”
-
-### Data
-
-From flattened events, group by song identity (`trackId` or fallback key). Keep groups with **≥ 2 distinct playlistIds**.
-
-For each group:
-
-```
-Migration = {
-  song,
-  claims: [{ playlistId, playlistName, addedAt }] sorted by time,
-  spanMs,           // last claim - first claim
-  hops,             // claims.length - 1
-  path              // playlist names in order (collapse consecutive same playlist)
-}
-```
-
-If the same song was added twice to the same playlist (rare), keep both claims but collapse consecutive same-playlist hops in the path label.
-
-Sort migrations by `spanMs` desc (slowest transformations first) with a secondary sort on `hops`. Surface a “quick hops” slice (same song, two playlists, < 30 days) separately — those feel different (sorting, not becoming).
-
-### Narrative
-
-```
-“{song}” by {artist}
-First claimed in {first.playlist} on {first.date}.
-{n} later, it showed up in {second.playlist}.
-{If 3+:} Then {third.playlist} ({third.date}).
-```
-
-Do not infer mood from playlist names beyond quoting them. The user’s naming is the joke/the ache.
-
-### Visual (later)
-
-- Full-width **river**: playlists as labeled banks (columns in chronological order of that song’s life, or a global playlist-time layout).
-- Each migration is a colored bezier from bank to bank; opacity by how unique the path is.
-- Selecting one song dims others and writes the story in a dock.
-- Alternate view: pick a playlist (“gym”) and see outbound arrows (songs that left) vs inbound (songs that arrived from elsewhere). That is the “room” view.
-
-Hero graphic: one song’s path as a bold stroke; the rest of the library as hairlines.
-
-### Edge cases
-
-- Song in 12 playlists: cap visible hops at 6 + “and n more”.
-- Same date across playlists (bulk add): treat as a split, not a graduation; copy: “claimed in two places the same day.”
-- Filter changes the available rooms; recompute.
-
-### Acceptance (when this experience is built)
-
-Dedicated page or tab; at least one song-path visualization that is not a table; story dock; empty state when no song appears in two playlists; uses filtered library.
+Specified in full in [`docs/song-migration.md`](song-migration.md). Same song, two or more playlists, a river of rooms, story dock, room view (arrived / left). Not a table. Not Graveyard.
 
 ---
 
@@ -527,12 +474,12 @@ Tombstones persist across refreshes; a removed-then-still-gone track appears; a 
 | Step | Ship | Notes |
 | --- | --- | --- |
 | 0 | This spec | `docs/library-experiences.md` |
-| 1 | Night (full product) | Events helper + nights clustering + Nights page + header tab |
-| 2 | Migration | Reuse `events.js` |
+| 1 | Night (full product) | Shipped |
+| 2 | Migration | Shipped — [`song-migration.md`](song-migration.md) |
 | 3 | Time capsule | Reuse events + night session ticks as flood markers |
 | 4 | Graveyard | Snapshot diff + gitignored history file + cemetery UI |
 
-Night must not pretend to be the other three. No half-built Migration UI behind a flag in this goal.
+Night and Migration must not pretend to be Capsule or Graveyard.
 
 ---
 

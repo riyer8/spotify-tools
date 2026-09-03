@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Explore from './Explore';
 import Stats from './Stats';
 import Nights from './Nights';
+import Migrations from './Migrations';
 import PlaylistControls from './PlaylistControls';
 import { redirectToSpotifyAuth } from './spotifyAuth';
 import { filterPlaylists, getDefaultFilter, saveFilter } from './playlistFilters';
@@ -25,7 +26,9 @@ export default function App() {
   });
   const [page, setPage] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('page') === 'nights' ? 'nights' : 'explore';
+    const pageParam = params.get('page');
+    if (pageParam === 'nights' || pageParam === 'migrations') return pageParam;
+    return 'explore';
   });
   const [authError, setAuthError] = useState('');
   const [filter, setFilter] = useState(getDefaultFilter);
@@ -146,6 +149,12 @@ export default function App() {
           >
             Nights
           </button>
+          <button
+            className={`nav-tab ${page === 'migrations' ? 'active' : ''}`}
+            onClick={() => setPage('migrations')}
+          >
+            Migrations
+          </button>
         </nav>
 
         <PlaylistControls
@@ -167,6 +176,7 @@ export default function App() {
         {page === 'explore' && <Explore {...sharedProps} />}
         {page === 'stats' && <Stats {...sharedProps} />}
         {page === 'nights' && <Nights {...sharedProps} />}
+        {page === 'migrations' && <Migrations {...sharedProps} />}
       </main>
     </div>
   );

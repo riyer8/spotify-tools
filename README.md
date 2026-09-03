@@ -4,7 +4,7 @@
 A local-first explorer for your Spotify library — what you saved, not what you played.
 
 **Quick links**
-Spec — [docs/library-experiences.md](docs/library-experiences.md)
+Spec — [docs/library-experiences.md](docs/library-experiences.md), [docs/song-migration.md](docs/song-migration.md)
 Experiments — [apps/](apps/)
 Env — [.env.example](.env.example), [backend/.env.example](backend/.env.example)
 

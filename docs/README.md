@@ -1,3 +1,4 @@
 # Docs
 
-- [Library experiences](library-experiences.md) — product spec for Night (shipped), plus Song migration, Time capsule, and Graveyard.
+- [Library experiences](library-experiences.md) — shared foundations; Night, Time capsule, Graveyard
+- [Song migration](song-migration.md) — “this song graduated” (shipping)
