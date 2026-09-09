@@ -7,18 +7,33 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-dotenv.config();
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '.env') });
+
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const LIBRARY_PATH = path.join(DATA_DIR, 'library.json');
+
+const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
+const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
+const PORT = Number(process.env.BACKEND_PORT);
+const missingEnv = [
+  !String(CLIENT_ID || '').trim() && 'SPOTIFY_CLIENT_ID',
+  !String(CLIENT_SECRET || '').trim() && 'SPOTIFY_CLIENT_SECRET',
+  (!Number.isInteger(PORT) || PORT <= 0) && 'BACKEND_PORT',
+].filter(Boolean);
+
+if (missingEnv.length) {
+  console.error(
+    `Missing required env in backend/.env: ${missingEnv.join(', ')}.\n` +
+      'Copy backend/.env.example to backend/.env and fill in your Spotify app credentials.\n' +
+      'See the README setup section for the Dashboard redirect URI.'
+  );
+  process.exit(1);
+}
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
-
-const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
-const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
 app.get('/', (_req, res) => {
   res.json({
@@ -83,4 +98,6 @@ app.post('/api/exchange_token', async (req, res) => {
   }
 });
 
-app.listen(process.env.BACKEND_PORT, () => console.log(`Backend listening on ${process.env.BACKEND_LINK}`));
+app.listen(PORT, () =>
+  console.log(`Backend listening on ${process.env.BACKEND_LINK || `http://127.0.0.1:${PORT}`}`)
+);
