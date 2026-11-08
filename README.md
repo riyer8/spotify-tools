@@ -56,4 +56,4 @@ Started at an EF Retreat. Each has its own README. Don’t run them on Graph’s
 
 - [apps/now-playing](apps/now-playing) — currently playing (8889)
 - [apps/top-songs](apps/top-songs) — playlist of your top tracks (8888, conflicts with Graph)
-- [apps/wrapped](apps/wrapped) — top artists/tracks over 6 months (3000 + 5173)
+- [apps/wrapped](apps/wrapped) — top artists/tracks over 6 months (3010 + 5173)
